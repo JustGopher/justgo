@@ -1,28 +1,26 @@
 package just
 
 import (
-	"fmt"
 	"net/http"
 )
 
-type HandlerFunc func(http.ResponseWriter, *http.Request)
+type HandlerFunc func(*Context)
 
 // Engine 实现 ServeHTTP 接口
 type Engine struct {
-	router map[string]HandlerFunc
+	router *router
 }
 
 // New Engine的构造器
 func New() *Engine {
 	return &Engine{
-		router: make(map[string]HandlerFunc),
+		router: newRouter(),
 	}
 }
 
 // addRoute 添加路由
 func (engine *Engine) addRoute(method string, pattern string, handler HandlerFunc) {
-	key := method + "-" + pattern
-	engine.router[key] = handler
+	engine.router.addRoute(method, pattern, handler)
 }
 
 // GET 添加Get请求
@@ -41,10 +39,6 @@ func (engine *Engine) Run(addr string) error {
 }
 
 func (engine *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	key := r.Method + "-" + r.URL.Path
-	if handler, ok := engine.router[key]; ok {
-		handler(w, r)
-	} else {
-		_, _ = fmt.Fprintf(w, "404 not found: %s\n", r.URL.Path)
-	}
+	c := newContext(w, r)
+	engine.router.handle(c)
 }
