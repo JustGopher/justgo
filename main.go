@@ -2,11 +2,14 @@ package main
 
 import (
 	"just"
+	"log"
 	"net/http"
+	"time"
 )
 
 func main() {
 	r := just.New()
+	r.Use(just.Logger())
 	r.GET("/index", func(c *just.Context) {
 		c.HTML(http.StatusOK, "<h1>Index Page</h1>")
 	})
@@ -22,6 +25,7 @@ func main() {
 		})
 	}
 	v2 := r.Group("/v2")
+	v2.Use(onlyForV2())
 	{
 		v2.GET("/hello/:name", func(c *just.Context) {
 			// expect /hello/geektutu
@@ -37,4 +41,14 @@ func main() {
 	}
 
 	r.Run(":9999")
+}
+func onlyForV2() just.HandlerFunc {
+	return func(c *just.Context) {
+		// Start timer
+		t := time.Now()
+		// if a server error occurred
+		c.Fail(500, "Internal Server Error")
+		// Calculate resolution time
+		log.Printf("[%d] %s in %v for group v2", c.StatusCode, c.Req.RequestURI, time.Since(t))
+	}
 }
