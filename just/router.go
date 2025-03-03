@@ -1,6 +1,7 @@
 package just
 
 import (
+	"log"
 	"net/http"
 	"strings"
 )
@@ -43,6 +44,7 @@ func (r *router) addRoute(method string, pattern string, handler HandlerFunc) {
 	if !ok {
 		r.roots[method] = &node{}
 	}
+	log.Printf("Route %4s - %s", method, pattern)
 	r.roots[method].insert(pattern, parts, 0)
 	r.handlers[key] = handler
 }
