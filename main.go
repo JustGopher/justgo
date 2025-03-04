@@ -1,54 +1,50 @@
 package main
 
 import (
+	"fmt"
+	"html/template"
 	"just"
-	"log"
 	"net/http"
 	"time"
 )
 
+type student struct {
+	Name string
+	Age  int8
+}
+
+func FormatAsDate(t time.Time) string {
+	year, month, day := t.Date()
+	return fmt.Sprintf("%d-%02d-%02d", year, month, day)
+}
+
 func main() {
 	r := just.New()
 	r.Use(just.Logger())
-	r.GET("/index", func(c *just.Context) {
-		c.HTML(http.StatusOK, "<h1>Index Page</h1>")
+	r.SetFuncMap(template.FuncMap{
+		"FormatAsDate": FormatAsDate,
 	})
-	v1 := r.Group("/v1")
-	{
-		v1.GET("/", func(c *just.Context) {
-			c.HTML(http.StatusOK, "<h1>Hello Just</h1>")
-		})
+	r.LoadHTMLGlob("templates/*")
+	r.Static("/assets", "./static")
 
-		v1.GET("/hello", func(c *just.Context) {
-			// expect /hello?name=geektutu
-			c.String(http.StatusOK, "hello %s, you're at %s\n", c.Query("name"), c.Path)
+	stu1 := &student{Name: "Geektutu", Age: 20}
+	stu2 := &student{Name: "Jack", Age: 22}
+	r.GET("/", func(c *just.Context) {
+		c.HTML(http.StatusOK, "just.tmpl", nil)
+	})
+	r.GET("/students", func(c *just.Context) {
+		c.HTML(http.StatusOK, "just.tmpl", just.H{
+			"title":  "gee",
+			"stuArr": [2]*student{stu1, stu2},
 		})
-	}
-	v2 := r.Group("/v2")
-	v2.Use(onlyForV2())
-	{
-		v2.GET("/hello/:name", func(c *just.Context) {
-			// expect /hello/geektutu
-			c.String(http.StatusOK, "hello %s, you're at %s\n", c.Param("name"), c.Path)
-		})
-		v2.POST("/login", func(c *just.Context) {
-			c.JSON(http.StatusOK, just.H{
-				"username": c.PostForm("username"),
-				"password": c.PostForm("password"),
-			})
-		})
+	})
 
-	}
+	r.GET("/date", func(c *just.Context) {
+		c.HTML(http.StatusOK, "just.tmpl", just.H{
+			"title": "gee",
+			"now":   time.Date(2019, 8, 17, 0, 0, 0, 0, time.UTC),
+		})
+	})
 
 	r.Run(":9999")
-}
-func onlyForV2() just.HandlerFunc {
-	return func(c *just.Context) {
-		// Start timer
-		t := time.Now()
-		// if a server error occurred
-		c.Fail(500, "Internal Server Error")
-		// Calculate resolution time
-		log.Printf("[%d] %s in %v for group v2", c.StatusCode, c.Req.RequestURI, time.Since(t))
-	}
 }
